@@ -5,10 +5,19 @@
 - 左键：切换激活 / 停用
 - 右键（或 ⌥ 左键）：菜单（允许显示器睡眠、合盖时保持唤醒、开机启动、退出）
 
-## 构建与安装
+## 安装
 
 ```bash
-mise run install   # 构建并安装到 /Applications
+brew install maskzh/tap/coffee
+```
+
+仅支持 Apple Silicon，macOS 13+。
+
+## 开发
+
+```bash
+mise run install   # 本地构建并安装到 /Applications
+mise run release   # 按 Info.plist 的版本号发布 GitHub Release，并更新 ../homebrew-tap 的 Cask
 ```
 
 ## 合盖时保持唤醒

@@ -19,3 +19,18 @@ rm -rf /Applications/Coffee.app
 cp -R build/Coffee.app /Applications/
 open /Applications/Coffee.app
 """
+
+[tasks.release]
+description = "Publish a GitHub release and bump the Homebrew cask in ../homebrew-tap"
+depends = ["build"]
+run = """
+set -e
+version=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" Info.plist)
+ditto -c -k --keepParent build/Coffee.app build/Coffee.zip
+gh release create "v$version" build/Coffee.zip --title "v$version" --generate-notes
+sha=$(shasum -a 256 build/Coffee.zip | cut -d' ' -f1)
+cask=../homebrew-tap/Casks/coffee.rb
+sed -i '' -e "s/^  version \\".*\\"/  version \\"$version\\"/" -e "s/^  sha256 \\".*\\"/  sha256 \\"$sha\\"/" $cask
+git -C ../homebrew-tap commit -qam "coffee $version"
+git -C ../homebrew-tap push -q
+"""
