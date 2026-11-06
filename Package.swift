@@ -2,8 +2,8 @@
 import PackageDescription
 
 let package = Package(
-    name: "Awake",
+    name: "Coffee",
     platforms: [.macOS(.v13)],
-    targets: [.executableTarget(name: "Awake")],
+    targets: [.executableTarget(name: "Coffee")],
     swiftLanguageModes: [.v5]
 )

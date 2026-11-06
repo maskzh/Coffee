@@ -3,6 +3,7 @@ import ServiceManagement
 
 let allowDisplaySleepKey = "allowDisplaySleep"
 let preventLidSleepKey = "preventLidSleep"
+let activateOnLaunchKey = "activateOnLaunch"
 
 final class App: NSObject, NSApplicationDelegate, NSMenuDelegate {
     let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
@@ -20,6 +21,7 @@ final class App: NSObject, NSApplicationDelegate, NSMenuDelegate {
         item.button?.action = #selector(click)
         item.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
         updateIcon()
+        if defaults.bool(forKey: activateOnLaunchKey) { start() }
     }
 
     func applicationWillTerminate(_: Notification) { stop() }
@@ -71,7 +73,7 @@ final class App: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func updateIcon() {
         let name = caffeinate == nil ? "cup.and.saucer" : "cup.and.saucer.fill"
-        item.button?.image = NSImage(systemSymbolName: name, accessibilityDescription: "Awake")
+        item.button?.image = NSImage(systemSymbolName: name, accessibilityDescription: "Coffee")
     }
 
     // MARK: Lid sleep
@@ -89,7 +91,7 @@ final class App: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let rule = "\(NSUserName()) ALL=(root) NOPASSWD: /usr/bin/pmset -a disablesleep 0, /usr/bin/pmset -a disablesleep 1"
         let alert = NSAlert()
         alert.messageText = "合盖保持唤醒需要 sudoers 规则"
-        alert.informativeText = "在终端执行：\n\necho '\(rule)' | sudo tee /etc/sudoers.d/awake"
+        alert.informativeText = "在终端执行：\n\necho '\(rule)' | sudo tee /etc/sudoers.d/coffee"
         NSApp.activate(ignoringOtherApps: true)
         alert.runModal()
     }
@@ -100,6 +102,7 @@ final class App: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.removeAllItems()
         addItem("允许显示器睡眠", #selector(toggleDisplaySleep), on: defaults.bool(forKey: allowDisplaySleepKey))
         addItem("合盖时保持唤醒", #selector(toggleLidSleep), on: defaults.bool(forKey: preventLidSleepKey))
+        addItem("启动时自动激活", #selector(toggleActivateOnLaunch), on: defaults.bool(forKey: activateOnLaunchKey))
         addItem("开机启动", #selector(toggleLaunchAtLogin), on: SMAppService.mainApp.status == .enabled)
         menu.addItem(.separator())
         menu.addItem(withTitle: "退出", action: #selector(NSApplication.terminate), keyEquivalent: "q")
@@ -121,6 +124,10 @@ final class App: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc func toggleLidSleep() {
         defaults.set(!defaults.bool(forKey: preventLidSleepKey), forKey: preventLidSleepKey)
         restartIfActive()
+    }
+
+    @objc func toggleActivateOnLaunch() {
+        defaults.set(!defaults.bool(forKey: activateOnLaunchKey), forKey: activateOnLaunchKey)
     }
 
     @objc func toggleLaunchAtLogin() {

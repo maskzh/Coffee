@@ -1,20 +1,21 @@
 [tasks.build]
-description = "Build build/Awake.app"
+description = "Build build/Coffee.app"
 run = """
 swift build -c release
-rm -rf build/Awake.app
-mkdir -p build/Awake.app/Contents/MacOS
-cp .build/release/Awake build/Awake.app/Contents/MacOS/
-cp Info.plist build/Awake.app/Contents/
-codesign --force --sign - build/Awake.app
+rm -rf build/Coffee.app
+mkdir -p build/Coffee.app/Contents/MacOS build/Coffee.app/Contents/Resources
+cp .build/release/Coffee build/Coffee.app/Contents/MacOS/
+cp Info.plist build/Coffee.app/Contents/
+cp AppIcon.icns build/Coffee.app/Contents/Resources/
+codesign --force --sign - build/Coffee.app
 """
 
 [tasks.install]
 description = "Install to /Applications"
 depends = ["build"]
 run = """
-pkill -x Awake || true
-rm -rf /Applications/Awake.app
-cp -R build/Awake.app /Applications/
-open /Applications/Awake.app
+pkill -x Coffee || true
+rm -rf /Applications/Coffee.app
+cp -R build/Coffee.app /Applications/
+open /Applications/Coffee.app
 """
