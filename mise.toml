@@ -1,0 +1,20 @@
+[tasks.build]
+description = "Build build/Awake.app"
+run = """
+swift build -c release
+rm -rf build/Awake.app
+mkdir -p build/Awake.app/Contents/MacOS
+cp .build/release/Awake build/Awake.app/Contents/MacOS/
+cp Info.plist build/Awake.app/Contents/
+codesign --force --sign - build/Awake.app
+"""
+
+[tasks.install]
+description = "Install to /Applications"
+depends = ["build"]
+run = """
+pkill -x Awake || true
+rm -rf /Applications/Awake.app
+cp -R build/Awake.app /Applications/
+open /Applications/Awake.app
+"""
