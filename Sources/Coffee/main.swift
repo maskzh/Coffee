@@ -47,10 +47,7 @@ final class App: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard (try? process.run()) != nil else { return }
         caffeinate = process
 
-        if defaults.bool(forKey: preventLidSleepKey) {
-            lidSleepDisabled = pmset(disableSleep: true)
-            if !lidSleepDisabled { showSudoersAlert() }
-        }
+        if defaults.bool(forKey: preventLidSleepKey) { lidSleepDisabled = pmset(disableSleep: true) }
         updateIcon()
     }
 
@@ -91,7 +88,7 @@ final class App: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let rule = "\(NSUserName()) ALL=(root) NOPASSWD: /usr/bin/pmset -a disablesleep 0, /usr/bin/pmset -a disablesleep 1"
         let alert = NSAlert()
         alert.messageText = "合盖保持唤醒需要 sudoers 规则"
-        alert.informativeText = "在终端执行：\n\necho '\(rule)' | sudo tee /etc/sudoers.d/coffee"
+        alert.informativeText = "在终端执行：\n\necho '\(rule)' | sudo tee /etc/sudoers.d/coffee && sudo chmod 440 /etc/sudoers.d/coffee"
         NSApp.activate(ignoringOtherApps: true)
         alert.runModal()
     }
@@ -122,7 +119,10 @@ final class App: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc func toggleLidSleep() {
-        defaults.set(!defaults.bool(forKey: preventLidSleepKey), forKey: preventLidSleepKey)
+        let enable = !defaults.bool(forKey: preventLidSleepKey)
+        // Probe passwordless sudo with the harmless restore command before enabling.
+        if enable && !pmset(disableSleep: false) { return showSudoersAlert() }
+        defaults.set(enable, forKey: preventLidSleepKey)
         restartIfActive()
     }
 
