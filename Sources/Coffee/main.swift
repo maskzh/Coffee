@@ -1,9 +1,17 @@
 import AppKit
+import IOKit.ps
+import notify
 import ServiceManagement
 
 let allowDisplaySleepKey = "allowDisplaySleep"
 let preventLidSleepKey = "preventLidSleep"
 let activateOnLaunchKey = "activateOnLaunch"
+let activateOnACKey = "activateOnAC"
+
+func isOnACPower() -> Bool {
+    let source = IOPSGetProvidingPowerSourceType(IOPSCopyPowerSourcesInfo().takeRetainedValue())
+    return source?.takeUnretainedValue() as String? == kIOPSACPowerValue
+}
 
 final class App: NSObject, NSApplicationDelegate, NSMenuDelegate {
     let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
@@ -11,6 +19,8 @@ final class App: NSObject, NSApplicationDelegate, NSMenuDelegate {
     let defaults = UserDefaults.standard
     var caffeinate: Process?
     var lidSleepDisabled = false
+    var onACPower = isOnACPower()
+    var powerSourceToken: Int32 = 0
 
     func applicationDidFinishLaunching(_: Notification) {
         // Restore lid sleep in case a previous run was killed before cleanup.
@@ -22,6 +32,18 @@ final class App: NSObject, NSApplicationDelegate, NSMenuDelegate {
         item.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
         updateIcon()
         if defaults.bool(forKey: activateOnLaunchKey) { start() }
+        notify_register_dispatch(kIOPSNotifyPowerSource, &powerSourceToken, .main) { [weak self] _ in
+            self?.powerSourceChanged()
+        }
+    }
+
+    // Plugging in activates, unplugging stops (when "连接电源时激活" is on).
+    func powerSourceChanged() {
+        let onAC = isOnACPower()
+        guard onAC != onACPower else { return }
+        onACPower = onAC
+        guard defaults.bool(forKey: activateOnACKey) else { return }
+        if !onAC { stop() } else if caffeinate == nil { start() }
     }
 
     func applicationWillTerminate(_: Notification) { stop() }
@@ -99,6 +121,7 @@ final class App: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.removeAllItems()
         addItem("允许显示器睡眠", #selector(toggleDisplaySleep), on: defaults.bool(forKey: allowDisplaySleepKey))
         addItem("合盖时保持唤醒", #selector(toggleLidSleep), on: defaults.bool(forKey: preventLidSleepKey))
+        addItem("连接电源时激活", #selector(toggleActivateOnAC), on: defaults.bool(forKey: activateOnACKey))
         addItem("启动时自动激活", #selector(toggleActivateOnLaunch), on: defaults.bool(forKey: activateOnLaunchKey))
         addItem("开机启动", #selector(toggleLaunchAtLogin), on: SMAppService.mainApp.status == .enabled)
         menu.addItem(.separator())
@@ -128,6 +151,10 @@ final class App: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc func toggleActivateOnLaunch() {
         defaults.set(!defaults.bool(forKey: activateOnLaunchKey), forKey: activateOnLaunchKey)
+    }
+
+    @objc func toggleActivateOnAC() {
+        defaults.set(!defaults.bool(forKey: activateOnACKey), forKey: activateOnACKey)
     }
 
     @objc func toggleLaunchAtLogin() {
